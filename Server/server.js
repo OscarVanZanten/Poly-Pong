@@ -50,6 +50,7 @@ setInterval(function() {
 	io.sockets.emit("gameupdate",lobby);
 }, 1000/60);
 
+
 function update(){
 	lobby.update();
 }
@@ -61,13 +62,10 @@ function user(name, id){
 	this.location = 0;
 	this.points = 0;
 	this.color = 0;
-	
-	
 	this.update = function update(){
 		if(this.keys[0] && this.location > 0) this.location--;
 		if(this.keys[1]&& this.location <100) this.location++;
 	}
-	
 }
 
 function lobby( maxplayers){
