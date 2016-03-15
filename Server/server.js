@@ -5,7 +5,7 @@ var io = require("socket.io").listen(server);
 server.listen(8000);
 console.log("listening on port 8000");
 
-var lobby = new lobby(6);
+var lobby = new lobby(2);
 
 function handler( request, response ) {
 	response.writeHead(200 , { "Content-Type": "text/plain"});
@@ -59,6 +59,8 @@ function user(name, id){
 	this.id = id;
 	this.keys = [false, false];
 	this.location = 0;
+	this.points = 0;
+	this.color = 0;
 	
 	
 	this.update = function update(){
@@ -71,6 +73,7 @@ function user(name, id){
 function lobby( maxplayers){
 	this.maxplayers = maxplayers
 	this.users = [];
+	this.currentlyplaying = 2;
 	
 	this.update = function update(){
 		for(var i =0; i < this.users.length; i++){

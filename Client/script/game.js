@@ -50,11 +50,14 @@ function updateKeys(){
 
 setInterval(function() {
 	graphics.fillStyle = "#FFFFFF";
-	graphics.fillRect(0,0, 300,300);
-	var center= new point(150,150);
-	var radius = 100;
+	graphics.fillRect(0,0, 600,600);
+	var center= new point(300,300);
+	var radius = 250;
 	var points = [];
-	var count= 6;
+	var count= lobby.currentlyplaying;
+	if(count < 4)
+		count = 4;
+
 	var angle = Math.PI * 2 / count;
 	for(var i = 0 ; i < count;i++){
 		var x =Math.cos(angle * i) *radius + center.x;
@@ -65,8 +68,14 @@ setInterval(function() {
 		graphics.fillStyle = "#FF0000";
 		graphics.fillRect(points[i].x,points[i].y, 2,2);
 	}
-	
-		
+	for(var i = 1 ; i < points.length;i++){
+		graphics.moveTo(points[i-1].x,points[i-1].y);
+		graphics.lineTo(points[i].x,points[i].y);
+		graphics.stroke();
+	}
+		graphics.moveTo(points[0].x,points[0].y);
+		graphics.lineTo(points[points.length-1].x,points[points.length-1].y);
+		graphics.stroke();
 	for(var i = 0 ; i < lobby.users.length;i++){
 		var x =lobby.users[i].location;
 		var y = 100 +  (i+1) * 50;
