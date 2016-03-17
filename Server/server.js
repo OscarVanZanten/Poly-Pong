@@ -68,10 +68,18 @@ function user(name, id){
 	}
 }
 
+function ball(xAs, yAs){
+	this.xAs = xAs;
+	this.yAs = yAs;
+	this.speed = 0;
+	this.angle = 0;
+}
+
 function lobby( maxplayers){
 	this.maxplayers = maxplayers
 	this.users = [];
 	this.currentlyplaying = 2;
+	this.ball = ball;
 	
 	this.update = function update(){
 		for(var i =0; i < this.users.length; i++){
