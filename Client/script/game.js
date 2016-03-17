@@ -52,35 +52,40 @@ setInterval(function() {
 	if(count < 4)
 		count = 4;
 
-	
 	for(var i = 0 ; i < count;i++){
 		var angle = Math.PI * 2 / count * i + (1/4 *Math.PI);
 		var x =Math.cos(angle) *radius + center.x;
 		var y =Math.sin(angle) *radius + center.y;
 		points.push(new point(x,y));
 	}
+	
 	for(var i = 1 ; i < points.length;i++){
 		graphics.moveTo(points[i-1].x,points[i-1].y);
 		graphics.lineTo(points[i].x,points[i].y);
 		graphics.stroke();
 	}
+	
 	graphics.moveTo(points[0].x,points[0].y);
 	graphics.lineTo(points[points.length-1].x,points[points.length-1].y);
 	graphics.stroke();
 	
-	
 	for(var i = 0 ; i < lobby.users.length;i++){
-		var angle = Math.PI * 1/2 * i +  (1	/4 *Math.PI);
-		//var x = Math.cos(angle) * radius + ( radius / 100 * lobby.users[i].location) - radius + center.x;
-		//var y = Math.sin(angle) * radius + center.y;
-		var x =Math.cos(angle) *radius + center.x + ( radius / 100 * lobby.users[i].location);
-		var y =Math.sin(angle) *radius + center.y;
+		var angle = Math.PI * 1/2 * i +  (1	/4 *Math.PI);	
+		var barlength = ( Math.sin((2 *Math.PI / count)/2)*radius*2) ;
+		
+		var x = Math.cos(angle) *radius + center.x + (barlength  * lobby.users[i].location/ 	100);
+		var y = Math.sin(angle) *radius + center.y ;
+		graphics.beginPath();		
+		
+		graphics.translate( x, y );
+		graphics.rotate(angle+  (1	/4 *Math.PI));
+		
+		graphics.rect(-100/2,-10/2, 100,10);	
 		graphics.fillStyle = "#FF0000";
-		graphics.rotate(0.0	);
-		graphics.fillRect(x - 50,y, 100,10);
+		graphics.fill();
+		
+		graphics.setTransform(1, 0, 0, 1, 0, 0);
 	}
-	graphics.setTransform(1, 0, 0, 1, 0, 0);
-	
 }, 1000/30);
 
 socket.on("gameupdate", function (data) {
