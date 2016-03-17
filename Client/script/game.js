@@ -53,7 +53,7 @@ setInterval(function() {
 		count = 4;
 
 	for(var i = 0 ; i < count;i++){
-		var angle = Math.PI * 2 / count * i + (1/4 *Math.PI);
+		var angle = Math.PI * 2 / count * i + (1/4 *Math.PI) ;
 		var x =Math.cos(angle) *radius + center.x;
 		var y =Math.sin(angle) *radius + center.y;
 		points.push(new point(x,y));
@@ -70,11 +70,20 @@ setInterval(function() {
 	graphics.stroke();
 	
 	for(var i = 0 ; i < lobby.users.length;i++){
-		var angle = Math.PI * 1/2 * i +  (1	/4 *Math.PI);	
+		var angle = Math.PI * 1/2 * i + (1/4 *Math.PI);
 		var barlength = ( Math.sin((2 *Math.PI / count)/2)*radius*2) ;
 		
-		var x = Math.cos(angle) *radius + center.x + (barlength  * lobby.users[i].location/ 	100);
-		var y = Math.sin(angle) *radius + center.y ;
+		var x = 0;
+		var y = 0;
+		
+		if(i % 2){
+			x = Math.cos(angle) *radius + center.x + (Math.sin(45*Math.PI/180 + angle -  (1/2 *Math.PI)	) *barlength / 100 * lobby.users[i].location);
+			y = Math.sin(angle) *radius + center.y + (Math.cos(45*Math.PI/180 + angle -  (1/2 *Math.PI)) *barlength / 100 * lobby.users[i].location);
+		} else{
+			x = Math.cos(angle) *radius + center.x - (Math.sin(45*Math.PI/180 + angle -  (1/2 *Math.PI)) *barlength / 100 * lobby.users[i].location);
+			y = Math.sin(angle) *radius + center.y - (Math.cos(45*Math.PI/180 + angle -  (1/2 *Math.PI)) *barlength / 100 * lobby.users[i].location);
+		}
+		
 		graphics.beginPath();		
 		
 		graphics.translate( x, y );
