@@ -5,12 +5,12 @@ var io = require("socket.io").listen(server);
 server.listen(8000);
 
 var lobbies = [];
-var lobby = new lobby("Main Lobby", 128, 0);
+var mainlobby = new lobby("Main Lobby", 128, 0);
 
 io.sockets.on("connection", function(socket) {
 	var data = socket.handshake.query;
 	console.log("user: '" + data.name +"' connected to the main Lobby" );
-	lobby.users.push(new user(data.name, socket.id));
+	mainlobby.users.push(new user(data.name, socket.id));
 	socket.on("namechange", function (data) {
 		var room = getLobbyForUser(socket.id);
 		var id = getIndexForUser(room.users, socket.id);
@@ -33,13 +33,19 @@ io.sockets.on("connection", function(socket) {
 	socket.on('serverListRefresh', function() {
 		io.sockets.connected[socket.id].emit('lobbies', lobbies);
 	});
+	socket.on("createlobby", function(data){
+		lobbies.push(new lobby(data, 2,getNextID()));
+		console.log(data);
+		console.log("created lobby");
+	});
+	
 });
 
 
-setInterval(function() {
-	console.log(lobby);
-	console.log(lobbies);
-}, 5000);
+//setInterval(function() {
+//	console.log(lobby);
+//	console.log(lobbies);
+//}, 5000);
 
 setInterval(function() {
 	for(var i = 0; i < lobbies.length; i ++){
@@ -76,17 +82,27 @@ function lobby(name, maxplayers, id){
 	this.currentlyplaying =0;
 	this.ball = ball;
 	this.update = function update(){
-		currentlyplaying = users.length;
+		//currentlyplaying = users.length;
 		for(var i =0; i < this.users.length; i++){
 			this.users[i].update();
 		}
 	}
 }
 
+function getNextID(){
+	var val = 1;
+	for(var i =0; i < lobbies.length; i++){
+		if(lobbies[i].id > val){
+			val = lobbies[i].id;
+		}
+	}
+	return val+1;
+}
+
 function getLobbyForUser(id){
-	for(var i =0; i < lobby.users.length;i++){
-		if(lobby.users[i].id ==id){
-			return lobby
+	for(var i =0; i < mainlobby.users.length;i++){
+		if(mainlobby.users[i].id ==id){
+			return mainlobby
 		}
 	}
 	for(var i =0; i < lobbies.length;i++){

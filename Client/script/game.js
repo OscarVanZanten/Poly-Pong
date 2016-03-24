@@ -11,6 +11,7 @@ splasscreen.src="img/Splasscreen.png"
 var status = "Startup";
 
 var lobby;
+var lobbies;
 
 //splasscreen
 $("#canvas").ready(function(){
@@ -29,7 +30,6 @@ setInterval(function() {
 	if(status == "Browser"){
 	
 	}
-	
 	if(status == "Ingame"){
 		if( lobby === undefined){
 			return;
@@ -85,6 +85,45 @@ socket.on("gameupdate", function (data) {
 });
 socket.on("lobbies", function (data) {
 	lobbies = data;
+	$("#menu").html(createServerList(data));
+});
+
+//creating serverlist
+function createServerList(data){
+	var serverlist = "<Strong>ServerList</Strong>";
+	if(data.length >0){
+		serverlist += "<ul>";
+		for(var i =0; i < data.length;i++){
+			serverlist += "<li>" + data[i].name + "</li>";
+		}
+		serverlist += "</ul>";
+	} else {
+		serverlist +="<br> no servers found"
+	}
+	serverlist += "<button id='create' type='button'>Create Lobby</button>";
+	serverlist += "<button id='refresh' type='button'>Refresh list</button>";
+	return serverlist;
+}
+
+
+//create lobby button
+$("#container").on('click', '#create', function () {
+	var form = "Name: <input type='text' id='lobbyname' value='name'></input>";
+	form += "<button id='createlobby' type='button'>Create Lobby</button>";
+	$("#menu").html(form);
+});
+
+//create lobby packet 
+$("#container").on('click', '#createlobby', function () {
+	var name  = $("#lobbyname").val();
+	socket.emit("createlobby", name);
+	$("#menu").html(createServerList(lobbies));
+});
+
+//refresh button
+$("#container").on('click', '#refresh', function () {
+	socket.emit("serverListRefresh", []);
+	console.log("Send serverlist refresh packet");
 });
 
 //name change
