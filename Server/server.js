@@ -26,28 +26,49 @@ io.sockets.on("connection", function(socket) {
 	});
 	socket.on('disconnect', function() {
 		var room = getLobbyForUser(socket.id);
-		var id = getIndexForUser(room.users, socket.id);
-		console.log("user disconnected: '" +  room.users[id].name+"'");
-		room.users.splice(id,1);
+		var user = room.getUserForID(socket.id);
+		room.leave(user)
+		
 	});
 	socket.on('serverListRefresh', function() {
 		io.sockets.connected[socket.id].emit('lobbies', lobbies);
 	});
 	socket.on("createlobby", function(data){
-		lobbies.push(new lobby(data, 2,getNextID()));
-		console.log(data);
-		console.log("created lobby");
+		var l = new lobby(data, 2,getNextID());
+		var user = mainlobby.getUserForID(socket.id);
+		mainlobby.leave(user);
+		l.join(user);
+		lobbies.push(l);
+		console.log("created lobby: " + data);
+		io.sockets.connected[socket.id].emit("joinLobby", l);
 	});
-	
+	socket.on("leaveLobby", function(data){
+		var room = getLobbyForUser(socket.id);
+		var user = room.getUserForID(socket.id);
+		room.leave(user);
+		mainlobby.join(user);
+		io.sockets.connected[socket.id].emit('lobbies', lobbies);
+	});
+	socket.on("joinLobby", function(data){
+		var destination = getLobbyByID(data);
+		if(destination.users.length < destination.maxplayers){
+			var room = getLobbyForUser(socket.id);
+			var user = room.getUserForID(socket.id);
+			room.leave(user);
+			destination.join(user);
+			io.sockets.connected[socket.id].emit("joinLobby",destination);
+		} else {
+			io.sockets.connected[socket.id].emit('kick', ["lobby too full",lobbies]);
+		}
+	});
 });
 
-
-//setInterval(function() {
-//	console.log(lobby);
-//	console.log(lobbies);
-//}, 5000);
-
 setInterval(function() {
+	for(var i = lobbies.length-1; i > -1 ; i--){
+		if(lobbies[i].users.length == 0){
+			lobbies.splice(i, 1);
+		}
+	}
 	for(var i = 0; i < lobbies.length; i ++){
 		lobbies[i].update();
 	}
@@ -55,36 +76,84 @@ setInterval(function() {
 }, 1000/60);
 
 function user(name, id){
+	//connection info
 	this.name = name;
 	this.id = id;
+	//input
 	this.keys = [false, false];
-	this.location = 0;
+	//other
 	this.points = 0;
 	this.color = 0;
+	//physics
+	this.point = new point(0,0);
+	this.location = 0;
+	this.angle = 0;
+	
 	this.update = function update(){
 		if(this.keys[0] && this.location > 0) this.location--;
 		if(this.keys[1]&& this.location <100) this.location++;
 	}
+	this.compare = function compare(user){
+		var cn = this.name == user.name;
+		var cid = this.id == user.id;
+		return (cn && cid);
+	}
 }
 
-function ball(xAs, yAs){
-	this.xAs = xAs;
-	this.yAs = yAs;
+function ball(point){
+	this.point = point;
 	this.speed = 0;
 	this.angle = 0;
 }
 
+function point(x,y){
+	this.x = x;
+	this.y = y; 
+}
+
 function lobby(name, maxplayers, id){
+	this.gamestatus= 'preparing'
 	this.id = id;
 	this.name = name;
 	this.maxplayers = maxplayers
-	this.users = [];
 	this.currentlyplaying =0;
-	this.ball = ball;
+	
+	//entities
+	this.users = [];
+	this.field = [];
+	this.ball = new ball(new point(0,0));
+	
+	this.getUserForID = function getUserForID(id){
+		for(var i =0; i < this.users.length; i++){
+			if(this.users[i].id == id){
+				return this.users[i];
+			}
+		}
+		return -1;
+	}	
+	this.join = function join(user){
+		this.users.push(user);
+		this.updateInfo();
+	}
+	this.leave = function leave(user){
+		for(var i =0; i < this.users.length; i++){
+			if(this.users[i].compare(user)){
+				this.users.splice(i,1);
+				this.updateInfo();
+				return true;
+			}
+		}
+		return false;
+	}
 	this.update = function update(){
-		//currentlyplaying = users.length;
 		for(var i =0; i < this.users.length; i++){
 			this.users[i].update();
+		}
+		this.updateInfo();
+	}
+	this.updateInfo = function updateInfo(){
+		for(var i =0; i < this.users.length; i++){
+			io.sockets.connected[this.users[i].id].emit("joinLobby", this);
 		}
 	}
 }
@@ -110,6 +179,15 @@ function getLobbyForUser(id){
 			if(lobbies[i].users[x].id == id){
 				return lobbies[i];
 			}
+		}
+	}
+	return -1;
+}
+
+function getLobbyByID(id){
+	for(var i =0; i < lobbies.length;i++){
+		if(lobbies[i].id == id){
+			return lobbies[i];
 		}
 	}
 	return -1;

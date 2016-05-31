@@ -5,7 +5,7 @@ var canvas = document.getElementById("canvas");
 var graphics = canvas.getContext("2d");
 var width = $("#canvas").width();
 var height = $("#canvas").height();
-var splasscreen =   new Image();
+var splasscreen = new Image();
 splasscreen.src="img/Splasscreen.png"
 
 var status = "Startup";
@@ -15,6 +15,7 @@ var lobbies;
 
 //splasscreen
 $("#canvas").ready(function(){
+	graphics.beginPath();	
 	graphics.drawImage(splasscreen,0,0,width ,height);
 	setTimeout(function(){
 		status  = "Browser";
@@ -28,7 +29,9 @@ $("#canvas").ready(function(){
 //draw game if lobby is set
 setInterval(function() {
 	if(status == "Browser"){
-	
+		graphics.beginPath();		
+		graphics.fillStyle = "#FFFFFF";
+		graphics.fillRect(0,0, width,height);
 	}
 	if(status == "Ingame"){
 		if( lobby === undefined){
@@ -38,7 +41,7 @@ setInterval(function() {
 		graphics.fillStyle = "#FFFFFF";
 		graphics.fillRect(0,0, width,height);
 		var center= new point(width/2,height/2);
-		var radius = 280;
+		var radius = 100;
 		var points = [];
 		var count= lobby.currentlyplaying;
 		if(count < 4)
@@ -78,15 +81,42 @@ setInterval(function() {
 			graphics.setTransform(1, 0, 0, 1, 0, 0);
 		}
 	}
-}, 1000/30);
+}, 1000/60);
 
+////connection listeners
 socket.on("gameupdate", function (data) {
 	lobby = data;
 });
+
 socket.on("lobbies", function (data) {
+	status = 'Browser';
 	lobbies = data;
 	$("#menu").html(createServerList(data));
 });
+
+socket.on("kick", function (data) {
+	status = 'Browser';
+	lobbies = data[1];
+	alert(data[0]);
+	$("#menu").html(createServerList(data[1]));
+});
+
+socket.on("joinLobby", function (data){
+	status = 'Ingame';
+	lobby = data;
+	$("#menu").html(createLobbyView(data));
+});
+
+//////generating menus
+//creating lobby view
+function createLobbyView(lobby){
+	var lobbyView = "<Strong>Lobby</Strong><br>Players:<br>";
+	for(var i =0; i < lobby.users.length; i++){
+		lobbyView += lobby.users[i].name + "<br>"
+	}
+	lobbyView += "<input type='button' id='leaveLobby' value='Leave'>";
+	return lobbyView;
+}
 
 //creating serverlist
 function createServerList(data){
@@ -94,7 +124,7 @@ function createServerList(data){
 	if(data.length >0){
 		serverlist += "<ul>";
 		for(var i =0; i < data.length;i++){
-			serverlist += "<li>" + data[i].name + "</li>";
+			serverlist += "<li>" + data[i].name + "<input type='button' value='Join' id='server' class='"+ data[i].id + "'></li>";
 		}
 		serverlist += "</ul>";
 	} else {
@@ -105,7 +135,7 @@ function createServerList(data){
 	return serverlist;
 }
 
-
+///////////button listeners
 //create lobby button
 $("#container").on('click', '#create', function () {
 	var form = "Name: <input type='text' id='lobbyname' value='name'></input>";
@@ -131,11 +161,21 @@ $("#name").change(function(){
 	console.log("changing name");
 	socket.emit("namechange", $("#name").val());
 });
+//leave lobby
+$("#container").on("click", '#leaveLobby', function(){
+	console.log("leavign lobby");
+	socket.emit("leaveLobby",lobby.id);
+});
+//join lobby
+$("#container").on("click", '#server', function(){
+	var c = $('#server').attr("class");
+	socket.emit("joinLobby",c);
+});
 
-//input
-
+///////////////input
 //listeners
 window.addEventListener('keydown', function(event) {
+	
   switch (event.keyCode) {
     case 37: // Left
       keyinputs[0] = true;
@@ -146,8 +186,8 @@ window.addEventListener('keydown', function(event) {
   }
 }, false);
 
-
 window.addEventListener('keyup', function(event) {
+	
   switch (event.keyCode) {
    case 37: // Left
       keyinputs[0] = false;
@@ -160,9 +200,5 @@ window.addEventListener('keyup', function(event) {
 
 setInterval(function (){
 	socket.emit("updateKeys", keyinputs);
-} , 1000/20);
+} , 1000/60);
 
-function point(x,y){
-	this.x = x;
-	this.y = y; 
-}
