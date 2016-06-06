@@ -48,7 +48,7 @@ io.sockets.on("connection", function(socket) {
 	socket.on("leaveLobby", function(data){
 		var room = getLobbyForUser(socket.id);
 		var user = room.getUserForID(socket.id);
-		room.sendMessageToAll("System: '"+ user.name+"' left");
+		room.sendMessageToAll("System:'"+ user.name+"' left");
 		room.leave(user);
 		mainlobby.join(user);
 		room.updateInfo();
@@ -72,6 +72,7 @@ io.sockets.on("connection", function(socket) {
 		var room = getLobbyForUser(socket.id);
 		var user = room.getUserForID(socket.id);
 		user.ready = data;
+		room.updateInfo();
 		console.log("User '"+ user.name + "' changed ready to: " + user.ready);
 	});
 	socket.on("message", function(data){
@@ -132,12 +133,15 @@ function point(x,y){
 }
 
 function lobby(name, maxplayers, id){
-	this.gamestatus= 'preparing'
+	this.gamestatus= "preparing";
 	this.id = id;
 	this.name = name;
 	this.maxplayers = maxplayers
 	this.currentlyplaying =0;
 	
+	//timer
+	this.timer = 0;
+	this.timerDefault = 600;
 	//entities
 	this.users = [];
 	this.field = [];
@@ -166,13 +170,30 @@ function lobby(name, maxplayers, id){
 		return false;
 	}
 	this.update = function update(){
-		if(this.isReady()){
-			
+		
+		if(this.isReady() == true){
+			this.gamestatus = "starting"
+			this.resetTimer();
+			this.setupGame();			
+		}
+		if(this.gamestatus == "starting"){
+			this.timer--;
+			if(this.timer % 60 == 0){
+				this.sendMessageToAll("System: game starting in: " + (this.timer / 60));
+			}
+			if(this.timer == 0){
+				this.gamestatus = "playing";
+				this.sendMessageToAll("System: Game started");
+			}
 		}
 		
-		for(var i =0; i < this.users.length; i++){
-			this.users[i].update();
+		
+		if(this.gamestatus == "starting" || this.gamestatus == "playing"){
+			for(var i =0; i < this.users.length; i++){
+				this.users[i].update();
+			}
 		}
+		
 		
 	}
 	this.updateInfo = function updateInfo(){
@@ -188,7 +209,20 @@ function lobby(name, maxplayers, id){
 				break;
 			}
 		}
-		return this.users.length >= 2 && this.users.length <= this.maxplayers && everyoneReady;
+		return (this.gamestatus == "preparing" && this.users.length >= 2 && this.users.length <= this.maxplayers && everyoneReady);
+	}
+	this.setupGame = function setupGame(){
+		switch(this.users.length){
+			case 2:
+				break;
+			case 3:
+				break;
+			default:
+				
+		}
+	}
+	this.resetTimer = function resetTimer(){
+		this.timer = this.timerDefault;
 	}
 	this.sendMessageToAll = function sendMessageToAll(message){
 		for(var i =0; i < this.users.length; i++){

@@ -76,10 +76,17 @@ socket.on("message", function(data){
 //////generating menus
 //creating lobby view
 function createLobbyView(lobby){
-	var lobbyView = "<Strong>Lobby</Strong><br>Players:<br>";
+	var lobbyView = "<Strong>Lobby</Strong><br><br><strong>Players:</strong><br>";
+	lobbyView+="-----------------------<br>"
 	for(var i =0; i < lobby.users.length; i++){
-		lobbyView += lobby.users[i].name + "<br>"
+		lobbyView += lobby.users[i].name;
+		if(lobby.users[i].ready){
+			lobbyView +=  " <strong>ready</strong>" + "<br>";
+		}else{
+			lobbyView +=  " <strong>not ready</strong>" + "<br>";
+		}
 	}
+	lobbyView+="------------------------<br>"
 	lobbyView += "<input type='button' id='ready' value='ready'>";
 	lobbyView += "<input type='button' id='unready' value='unready'><br>";
 	lobbyView += "<input type='button' id='leaveLobby' value='Leave'>";
