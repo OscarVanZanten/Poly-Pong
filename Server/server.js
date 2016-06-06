@@ -10,11 +10,14 @@ var mainlobby = new lobby("Main Lobby", 128, 0);
 io.sockets.on("connection", function(socket) {
 	var data = socket.handshake.query;
 	console.log("user: '" + data.name +"' connected to the main Lobby" );
-	mainlobby.users.push(new user(data.name, socket.id));
+	var u = new user(data.name, socket.id);
+	mainlobby.users.push(u);
+	mainlobby.sendMessageToAll("System:'"+ u.name +"' joined");
 	socket.on("namechange", function (data) {
 		var room = getLobbyForUser(socket.id);
 		var id = getIndexForUser(room.users, socket.id);
 		console.log("User '" + room.users[id].name + "' changed their name to '" + data + "'");
+		room.sendMessageToAll("System: player '" +  room.users[id].name + "' changed their name to '" + data+"'");
 		room.users[id].name = data;
 	});
 	socket.on("updateKeys", function (data) {
@@ -28,7 +31,7 @@ io.sockets.on("connection", function(socket) {
 		var room = getLobbyForUser(socket.id);
 		var user = room.getUserForID(socket.id);
 		room.leave(user)
-		
+		room.sendMessageToAll("System:'"+ user.name+"' left");
 	});
 	socket.on('serverListRefresh', function() {
 		io.sockets.connected[socket.id].emit('lobbies', lobbies);
@@ -45,10 +48,11 @@ io.sockets.on("connection", function(socket) {
 	socket.on("leaveLobby", function(data){
 		var room = getLobbyForUser(socket.id);
 		var user = room.getUserForID(socket.id);
+		room.sendMessageToAll("System: '"+ user.name+"' left");
 		room.leave(user);
 		mainlobby.join(user);
 		room.updateInfo();
-		console.log("User left lobby: '"+ user.name+"'");
+		console.log("User left lobby:'"+ user.name+"'");
 		io.sockets.connected[socket.id].emit('lobbies', lobbies);
 	});
 	socket.on("joinLobby", function(data){
@@ -69,6 +73,12 @@ io.sockets.on("connection", function(socket) {
 		var user = room.getUserForID(socket.id);
 		user.ready = data;
 		console.log("User '"+ user.name + "' changed ready to: " + user.ready);
+	});
+	socket.on("message", function(data){
+		var room = getLobbyForUser(socket.id);
+		var user = room.getUserForID(socket.id);
+		console.log("received message from '"+user.name+"'")
+		room.sendMessageToAll(user.name+": " + data);
 	});
 });
 
@@ -173,12 +183,17 @@ function lobby(name, maxplayers, id){
 	this.isReady = function isReady(){
 		var everyoneReady = true;
 		for(var i =0; i < this.users.length; i++){
-			if(users[i].ready == false){
+			if(this.users[i].ready == false){
 				everyoneReady = false;
 				break;
 			}
 		}
-		return users.length >= 2 && users.length <= this.maxplayers && everyoneReady;
+		return this.users.length >= 2 && this.users.length <= this.maxplayers && everyoneReady;
+	}
+	this.sendMessageToAll = function sendMessageToAll(message){
+		for(var i =0; i < this.users.length; i++){
+			sendMessage(message, this.users[i]);
+		}
 	}
 }
 
@@ -225,6 +240,10 @@ function getIndexForUser(users, id){
 	}
 	return -1;
 }
+
+function sendMessage(message, user){
+	io.sockets.connected[user.id].emit("message", message + '\n');
+}	
 
 function handler( request, response ) {
 	response.writeHead(200 , { "Content-Type": "text/plain"});

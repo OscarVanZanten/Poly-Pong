@@ -13,3 +13,27 @@ canvas{
 	border:1px solid #000000;
 	height:300px;
 }
+
+#chat {
+	width:400px;
+	height:150px;
+	border:1px solid #000000;
+}
+
+#chatHistory{
+	width: 380px;
+	height: 100px;
+	margin: 7px;
+	
+}
+
+#messageBox{	
+	width: 400px;
+	height: 40px;
+	margin: 0px 0px 3px 3px;
+}
+
+#message{
+	width:300px;	
+	
+}

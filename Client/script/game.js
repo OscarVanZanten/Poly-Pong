@@ -68,6 +68,11 @@ socket.on("joinLobby", function (data){
 	$("#menu").html(createLobbyView(data));
 });
 
+socket.on("message", function(data){
+	console.log("received message: " + data);
+	$("#chatHistory").append(data);
+});
+
 //////generating menus
 //creating lobby view
 function createLobbyView(lobby){
@@ -124,6 +129,11 @@ $("#container").on('click', '#refresh', function () {
 $("#name").change(function(){
 	console.log("changing name");
 	socket.emit("namechange", $("#name").val());
+});
+//send message
+$("#sendMessage").on("click", function(){
+	console.log("sending message");
+	socket.emit("message", $("#message").val());
 });
 //leave lobby
 $("#container").on("click", '#leaveLobby', function(){
