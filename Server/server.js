@@ -110,6 +110,8 @@ function user(name, id){
 	this.location = 0;
 	this.angle = 0;
 	
+	this.goal = new rectangle(0,0,0,0,0);
+	
 	this.update = function update(){
 		if(this.keys[0] && this.location > 0) this.location--;
 		if(this.keys[1]&& this.location <100) this.location++;
@@ -125,6 +127,14 @@ function ball(point){
 	this.point = point;
 	this.speed = 0;
 	this.angle = 0;
+}
+
+function rectangle(x,y,width,height,rot){
+	this.x = x;
+	this.y = y;
+	this.width = width;
+	this.height = height;
+	this.rot = rot;
 }
 
 function point(x,y){
@@ -144,7 +154,7 @@ function lobby(name, maxplayers, id){
 	this.timerDefault = 600;
 	//entities
 	this.users = [];
-	this.field = [];
+	this.walls = [];
 	this.ball = new ball(new point(0,0));
 	
 	this.getUserForID = function getUserForID(id){
@@ -217,8 +227,10 @@ function lobby(name, maxplayers, id){
 				break;
 			case 3:
 				break;
+			case 4:
+				break;
 			default:
-				
+				break;
 		}
 	}
 	this.resetTimer = function resetTimer(){
