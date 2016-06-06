@@ -40,46 +40,7 @@ setInterval(function() {
 		graphics.beginPath();		
 		graphics.fillStyle = "#FFFFFF";
 		graphics.fillRect(0,0, width,height);
-		var center= new point(width/2,height/2);
-		var radius = 100;
-		var points = [];
-		var count= lobby.currentlyplaying;
-		if(count < 4)
-			count = 4;
-		for(var i = 0 ; i < count;i++){
-			var angle = Math.PI * 2 / count * i + (1/4 *Math.PI) ;
-			var x =Math.cos(angle) *radius + center.x;
-			var y =Math.sin(angle) *radius + center.y;
-			points.push(new point(x,y));
-		}
-		for(var i = 1 ; i < points.length;i++){
-			graphics.moveTo(points[i-1].x,points[i-1].y);
-			graphics.lineTo(points[i].x,points[i].y);
-			graphics.stroke();
-		}
-		graphics.moveTo(points[0].x,points[0].y);
-		graphics.lineTo(points[points.length-1].x,points[points.length-1].y);
-		graphics.stroke();
-		for(var i = 0 ; i < lobby.users.length;i++){
-			var angle = Math.PI * 1/2 * i + (1/4 *Math.PI);
-			var barlength = ( Math.sin((2 *Math.PI / count)/2)*radius*2) ;
-			var x = 0;
-			var y = 0;
-			if(i % 2){
-				x = Math.cos(angle) *radius + center.x + (Math.sin(45*Math.PI/180 + angle -  (1/2 *Math.PI)	) *barlength / 100 * lobby.users[i].location);
-				y = Math.sin(angle) *radius + center.y + (Math.cos(45*Math.PI/180 + angle -  (1/2 *Math.PI)) *barlength / 100 * lobby.users[i].location);
-			} else{
-				x = Math.cos(angle) *radius + center.x - (Math.sin(45*Math.PI/180 + angle -  (1/2 *Math.PI)) *barlength / 100 * lobby.users[i].location);
-				y = Math.sin(angle) *radius + center.y - (Math.cos(45*Math.PI/180 + angle -  (1/2 *Math.PI)) *barlength / 100 * lobby.users[i].location);
-			}
-			graphics.beginPath();		
-			graphics.translate( x, y );
-			graphics.rotate(angle+  (1	/4 *Math.PI));
-			graphics.rect(-100/2,-10/2, 100,10);	
-			graphics.fillStyle = "#FF0000";
-			graphics.fill();
-			graphics.setTransform(1, 0, 0, 1, 0, 0);
-		}
+		
 	}
 }, 1000/60);
 
@@ -114,6 +75,8 @@ function createLobbyView(lobby){
 	for(var i =0; i < lobby.users.length; i++){
 		lobbyView += lobby.users[i].name + "<br>"
 	}
+	lobbyView += "<input type='button' id='ready' value='ready'>";
+	lobbyView += "<input type='button' id='unready' value='unready'><br>";
 	lobbyView += "<input type='button' id='leaveLobby' value='Leave'>";
 	return lobbyView;
 }
@@ -139,13 +102,14 @@ function createServerList(data){
 //create lobby button
 $("#container").on('click', '#create', function () {
 	var form = "Name: <input type='text' id='lobbyname' value='name'></input>";
+	form += "Max Players: <input type='number' id='maxplayers' value='2'></input>"
 	form += "<button id='createlobby' type='button'>Create Lobby</button>";
 	$("#menu").html(form);
 });
 
 //create lobby packet 
 $("#container").on('click', '#createlobby', function () {
-	var name  = $("#lobbyname").val();
+	var name  = [$("#lobbyname").val(), $("#maxplayers").val()];
 	socket.emit("createlobby", name);
 	$("#menu").html(createServerList(lobbies));
 });
@@ -163,15 +127,23 @@ $("#name").change(function(){
 });
 //leave lobby
 $("#container").on("click", '#leaveLobby', function(){
-	console.log("leavign lobby");
+	console.log("leaving lobby");
 	socket.emit("leaveLobby",lobby.id);
 });
-//join lobby
+//join l
 $("#container").on("click", '#server', function(){
 	var c = $('#server').attr("class");
 	socket.emit("joinLobby",c);
 });
-
+//ready/unready
+$("#container").on("click", '#ready', function(){
+	console.log("readying");
+	socket.emit("ready",true);
+});
+$("#container").on("click", '#unready', function(){
+	console.log("unreadying");
+	socket.emit("ready",false);
+});
 ///////////////input
 //listeners
 window.addEventListener('keydown', function(event) {

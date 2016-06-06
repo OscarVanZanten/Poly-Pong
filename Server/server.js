@@ -34,12 +34,12 @@ io.sockets.on("connection", function(socket) {
 		io.sockets.connected[socket.id].emit('lobbies', lobbies);
 	});
 	socket.on("createlobby", function(data){
-		var l = new lobby(data, 2,getNextID());
+		var l = new lobby(data[0], data[1],getNextID());
 		var user = mainlobby.getUserForID(socket.id);
 		mainlobby.leave(user);
 		l.join(user);
 		lobbies.push(l);
-		console.log("created lobby: " + data);
+		console.log("created lobby, Name: '" + data[0] + "', MaxPlayers: '" + data[1]+"'");
 		io.sockets.connected[socket.id].emit("joinLobby", l);
 	});
 	socket.on("leaveLobby", function(data){
@@ -47,6 +47,8 @@ io.sockets.on("connection", function(socket) {
 		var user = room.getUserForID(socket.id);
 		room.leave(user);
 		mainlobby.join(user);
+		room.updateInfo();
+		console.log("User left lobby: '"+ user.name+"'");
 		io.sockets.connected[socket.id].emit('lobbies', lobbies);
 	});
 	socket.on("joinLobby", function(data){
@@ -54,12 +56,19 @@ io.sockets.on("connection", function(socket) {
 		if(destination.users.length < destination.maxplayers){
 			var room = getLobbyForUser(socket.id);
 			var user = room.getUserForID(socket.id);
+			user.ready = false;
 			room.leave(user);
 			destination.join(user);
-			io.sockets.connected[socket.id].emit("joinLobby",destination);
+			room.updateInfo();
 		} else {
 			io.sockets.connected[socket.id].emit('kick', ["lobby too full",lobbies]);
 		}
+	});
+	socket.on("ready", function(data){
+		var room = getLobbyForUser(socket.id);
+		var user = room.getUserForID(socket.id);
+		user.ready = data;
+		console.log("User '"+ user.name + "' changed ready to: " + user.ready);
 	});
 });
 
@@ -82,6 +91,7 @@ function user(name, id){
 	//input
 	this.keys = [false, false];
 	//other
+	this.ready = false;
 	this.points = 0;
 	this.color = 0;
 	//physics
@@ -146,15 +156,29 @@ function lobby(name, maxplayers, id){
 		return false;
 	}
 	this.update = function update(){
+		if(this.isReady()){
+			
+		}
+		
 		for(var i =0; i < this.users.length; i++){
 			this.users[i].update();
 		}
-		this.updateInfo();
+		
 	}
 	this.updateInfo = function updateInfo(){
 		for(var i =0; i < this.users.length; i++){
 			io.sockets.connected[this.users[i].id].emit("joinLobby", this);
 		}
+	}
+	this.isReady = function isReady(){
+		var everyoneReady = true;
+		for(var i =0; i < this.users.length; i++){
+			if(users[i].ready == false){
+				everyoneReady = false;
+				break;
+			}
+		}
+		return users.length >= 2 && users.length <= this.maxplayers && everyoneReady;
 	}
 }
 
