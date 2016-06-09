@@ -13,9 +13,9 @@ var status = "Startup";
 var lobby;
 var lobbies;
 
-var walls =[];
-var users =[];
-var ball = [];
+var walls;
+var users ;
+var ball ;
 
 //splasscreen
 $("#canvas").ready(function(){
@@ -33,29 +33,25 @@ $("#canvas").ready(function(){
 //draw game if lobby is set
 setInterval(function() {
 	
-		graphics.beginPath();		
-		graphics.fillStyle = "#FFFFFF";
-		graphics.fillRect(0,0, width,height);
+	if( walls === undefined || users === undefined || ball === undefined){
+		return;
+	}
 	
-		if( walls == undefined || users == undefined || ball == undefined){
-			return;
-		}
-		graphics.beginPath();		
-		graphics.fillStyle = "#FFFFFF";
-		graphics.fillRect(0,0, width,height);
-		
-		for(var i = 0; i <walls.length; i++){
-			graphics.rotate(walls[i].rot * Math.PI/180);
-			graphics.fillRect(walls[i].x, walls[i].y, walls[i].width, walls[i].height);
-			graphics.fill();
-			graphics.rotate((360 - walls[i].rot)  * Math.PI/180);
-		}
-
+	console.log("drawing");
+	console.log(walls.length);
+	for(var i =0; i < walls.length; i++){
+		graphics.save()
+		graphics.fillStyle = "red";
+		graphics.translate( walls[i].x, walls[i].y);
+		graphics.rotate(walls[i].rot * Math.PI/180);
+		graphics.fillRect(0,0  , walls[i].width, walls[i].height);
+		graphics.restore();
+	}	
 }, 1000/60);
 
 ////connection listeners
 socket.on("gameupdate", function (data) {
-	users =data[0];
+	users = data[0];
 	walls = data[1];
 	ball = data[2];
 });

@@ -9,7 +9,7 @@ var mainlobby = new lobby("Main Lobby", 128, 0);
 
 io.sockets.on("connection", function(socket) {
 	var data = socket.handshake.query;
-	console.log("user: '" + data.name +"' connected to the main Lobby" );
+	console.log("user: '" + data.name +"' connected to the main Lobby: " + socket.id );
 	var u = new user(data.name, socket.id);
 	mainlobby.users.push(u);
 	mainlobby.sendMessageToAll("System:'"+ u.name +"' joined");
@@ -30,8 +30,14 @@ io.sockets.on("connection", function(socket) {
 	socket.on('disconnect', function() {
 		var room = getLobbyForUser(socket.id);
 		var user = room.getUserForID(socket.id);
-		room.leave(user)
-		room.sendMessageToAll("System:'"+ user.name+"' left");
+		if(room == mainlobby){
+			room.leaveSilent(user);
+			
+		}else{
+			room.sendMessageToAll("System:'"+ user.name+"' left");
+			room.leave(user)
+			
+		}
 	});
 	socket.on('serverListRefresh', function() {
 		io.sockets.connected[socket.id].emit('lobbies', lobbies);
@@ -39,7 +45,7 @@ io.sockets.on("connection", function(socket) {
 	socket.on("createlobby", function(data){
 		var l = new lobby(data[0], data[1],getNextID());
 		var user = mainlobby.getUserForID(socket.id);
-		mainlobby.leave(user);
+		mainlobby.leaveSilent(user);
 		l.join(user);
 		lobbies.push(l);
 		console.log("created lobby, Name: '" + data[0] + "', MaxPlayers: '" + data[1]+"'");
@@ -164,6 +170,15 @@ function lobby(name, maxplayers, id){
 		}
 		return -1;
 	}	
+	this.leaveSilent = function leaveSilent(user){
+		for(var i =0; i < this.users.length; i++){
+			if(this.users[i].compare(user)){
+				this.users.splice(i,1);
+					return true;
+			}
+		}
+	}
+	
 	this.join = function join(user){
 		this.users.push(user);
 		this.updateInfo();
@@ -222,10 +237,10 @@ function lobby(name, maxplayers, id){
 		this.walls = [];
 		switch(this.users.length){
 			case 2:
-				this.walls.push(new rectangle(0,0, 100, 10,0, null));
-				this.walls.push(new rectangle(0,0, 100, 10,90, this.users[0]));
-				this.walls.push(new rectangle(0,100, 100, 10,0, null));
-				this.walls.push(new rectangle(0,0, 100, 10,0, this.users[1]));
+				this.walls.push(new rectangle(50,50, 200, 10,0, null));
+				this.walls.push(new rectangle(50,50, 200, 10,90, this.users[0]));
+				this.walls.push(new rectangle(250,50, 200, 10,90, null));
+				this.walls.push(new rectangle(50,250, 200, 10,0, this.users[1]));
 				break;
 			case 3:
 				break;
