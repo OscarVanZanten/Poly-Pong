@@ -13,6 +13,10 @@ var status = "Startup";
 var lobby;
 var lobbies;
 
+var walls =[];
+var users =[];
+var ball = [];
+
 //splasscreen
 $("#canvas").ready(function(){
 	graphics.beginPath();	
@@ -28,25 +32,32 @@ $("#canvas").ready(function(){
 
 //draw game if lobby is set
 setInterval(function() {
-	if(status == "Browser"){
+	
 		graphics.beginPath();		
 		graphics.fillStyle = "#FFFFFF";
 		graphics.fillRect(0,0, width,height);
-	}
-	if(status == "Ingame"){
-		if( lobby === undefined){
+	
+		if( walls == undefined || users == undefined || ball == undefined){
 			return;
 		}
 		graphics.beginPath();		
 		graphics.fillStyle = "#FFFFFF";
 		graphics.fillRect(0,0, width,height);
 		
-	}
+		for(var i = 0; i <walls.length; i++){
+			graphics.rotate(walls[i].rot * Math.PI/180);
+			graphics.fillRect(walls[i].x, walls[i].y, walls[i].width, walls[i].height);
+			graphics.fill();
+			graphics.rotate((360 - walls[i].rot)  * Math.PI/180);
+		}
+
 }, 1000/60);
 
 ////connection listeners
 socket.on("gameupdate", function (data) {
-	lobby = data;
+	users =data[0];
+	walls = data[1];
+	ball = data[2];
 });
 
 socket.on("lobbies", function (data) {

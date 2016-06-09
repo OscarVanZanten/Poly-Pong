@@ -92,7 +92,7 @@ setInterval(function() {
 	for(var i = 0; i < lobbies.length; i ++){
 		lobbies[i].update();
 	}
-	//io.sockets.emit("gameupdate",lobby);
+	
 }, 1000/60);
 
 function user(name, id){
@@ -109,8 +109,6 @@ function user(name, id){
 	this.point = new point(0,0);
 	this.location = 0;
 	this.angle = 0;
-	
-	this.goal = new rectangle(0,0,0,0,0);
 	
 	this.update = function update(){
 		if(this.keys[0] && this.location > 0) this.location--;
@@ -129,12 +127,13 @@ function ball(point){
 	this.angle = 0;
 }
 
-function rectangle(x,y,width,height,rot){
+function rectangle(x,y,width,height,rot, user){
 	this.x = x;
 	this.y = y;
 	this.width = width;
 	this.height = height;
 	this.rot = rot;
+	this.user = user;
 }
 
 function point(x,y){
@@ -180,7 +179,6 @@ function lobby(name, maxplayers, id){
 		return false;
 	}
 	this.update = function update(){
-		
 		if(this.isReady() == true){
 			this.gamestatus = "starting"
 			this.resetTimer();
@@ -196,12 +194,11 @@ function lobby(name, maxplayers, id){
 				this.sendMessageToAll("System: Game started");
 			}
 		}
-		
-		
 		if(this.gamestatus == "starting" || this.gamestatus == "playing"){
 			for(var i =0; i < this.users.length; i++){
 				this.users[i].update();
 			}
+			this.sendGameUpdate();
 		}
 		
 		
@@ -222,8 +219,13 @@ function lobby(name, maxplayers, id){
 		return (this.gamestatus == "preparing" && this.users.length >= 2 && this.users.length <= this.maxplayers && everyoneReady);
 	}
 	this.setupGame = function setupGame(){
+		this.walls = [];
 		switch(this.users.length){
 			case 2:
+				this.walls.push(new rectangle(0,0, 100, 10,0, null));
+				this.walls.push(new rectangle(0,0, 100, 10,90, this.users[0]));
+				this.walls.push(new rectangle(0,100, 100, 10,0, null));
+				this.walls.push(new rectangle(0,0, 100, 10,0, this.users[1]));
 				break;
 			case 3:
 				break;
@@ -239,6 +241,11 @@ function lobby(name, maxplayers, id){
 	this.sendMessageToAll = function sendMessageToAll(message){
 		for(var i =0; i < this.users.length; i++){
 			sendMessage(message, this.users[i]);
+		}
+	}
+	this.sendGameUpdate = function sendGameUpdate(){
+		for(var i =0; i < this.users.length; i++){
+			io.sockets.connected[this.users[i].id].emit("gameupdate", [this.users, this.walls, this.ball]);
 		}
 	}
 }
