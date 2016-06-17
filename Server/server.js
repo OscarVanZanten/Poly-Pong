@@ -56,9 +56,9 @@ io.sockets.on("connection", function(socket) {
 		room.sendMessageToAll("System:'"+ user.name+"' left");
 		room.leave(user);
 		mainlobby.join(user);
-		room.updateInfo();
 		console.log("User left lobby:'"+ user.name+"'");
 		io.sockets.connected[socket.id].emit('lobbies', lobbies);
+		room.updateInfo();
 	});
 	socket.on("joinLobby", function(data){
 		var destination = getLobbyByID(data);
@@ -136,7 +136,7 @@ function ball(rectangle){
 	this.update  = function update(lobby){
 		for(var i = 0; i < lobby.walls.length; i++){
 			if(lobby.walls[i].collision(this.rectangle)){
-				this.angle += 90;
+				this.angle -= 90;
 				if(lobby.walls[i].user != null){
 					lobby.walls[i].user.points++;
 					lobby.resetGame();
@@ -145,12 +145,15 @@ function ball(rectangle){
 		}
 		for(var i = 0; i < lobby.users.length; i++){
 			if(lobby.users[i].getRect().collision(this.rectangle)){
-				this.angle += 90;
+				this.angle -= 90;
 				this.speed += 0.2
 			}
 		}
 		while(this.angle > 360){
 			this.angle -= 360;
+		}
+		while(this.angle < 0){
+			this.angle += 360;
 		}
 		this.rectangle.x += Math.cos(this.angle * (Math.PI/180)) * this.speed;
 		this.rectangle.y += Math.sin(this.angle * (Math.PI/180)) * this.speed;
@@ -165,8 +168,13 @@ function rectangle(x,y,width,height,rot, user){
 	this.rot = rot;
 	this.user = user;
 	this.timer = 0;
-	this.time = 3;
+	this.time = 1;
 	this.collision = function collision(rectangle){
+		if(this.timer > 0){
+			this.timer--;
+			return false;
+		}
+	
 		var found = false;
 		var points = [];
 		points.push(new point(rectangle.x, rectangle.y));
@@ -177,6 +185,7 @@ function rectangle(x,y,width,height,rot, user){
 			if(this.x < points[i].x && (this.x + this.width) > points[i].x
 			&& this.y < points[i].y && (this.y+ this.height) > points[i].y){
 					found = true;
+					this.timer = this.time;
 				}
 		}
 		return found;
@@ -194,6 +203,8 @@ function lobby(name, maxplayers, id){
 	this.name = name;
 	this.maxplayers = maxplayers
 	this.currentlyplaying =0;
+	
+	this.scorelimit = 5;
 	
 	//timer
 	this.timer = 0;
@@ -240,7 +251,8 @@ function lobby(name, maxplayers, id){
 		if(this.isReady() == true){
 			this.gamestatus = "starting"
 			this.resetTimer();
-			this.setupGame();			
+			this.setupGame();		
+			this.updateInfo();
 		}
 		if(this.gamestatus == "starting"){
 			this.timer--;
@@ -261,11 +273,30 @@ function lobby(name, maxplayers, id){
 		}
 		if(this.gamestatus == "playing"){
 			this.ball.update(this);
+			for(var i =0; i < this.users.length; i++){
+				if(this.users[i].points == this.scorelimit){
+					this.sendMessageToAll(this.users[i].name + " has won the game!");
+					for(var x =0; x < this.users.length; x++){
+						this.users[x].ready = false;
+					}
+					this.gamestatus ="preparing";
+					this.updateInfo();
+				}
+			}
+			if(this.users.length == 1){
+				this.sendMessageToAll("Too little players, stopped the game");
+				this.resetGame();
+				this.gamestatus ="preparing";
+			}
 		}
+		
+		
 	}
 	this.updateInfo = function updateInfo(){
-		for(var i =0; i < this.users.length; i++){
-			io.sockets.connected[this.users[i].id].emit("joinLobby", this);
+		if(this.name != "Main Lobby"){
+			for(var i =0; i < this.users.length; i++){
+				io.sockets.connected[this.users[i].id].emit("joinLobby", this);
+			}
 		}
 	}
 	this.isReady = function isReady(){
@@ -279,8 +310,11 @@ function lobby(name, maxplayers, id){
 		return (this.gamestatus == "preparing" && this.users.length >= 2 && this.users.length <= this.maxplayers && everyoneReady);
 	}
 	this.setupGame = function setupGame(){
+		this.users[0].points = 0;
+		this.users[1].points =0;
 		this.width = 300;
 		this.height = 200;
+		this.walls = [];
 		this.walls.push(new rectangle(50,40, 300, 10,0, null));
 		this.walls.push(new rectangle(50,50, 10, 200,0, this.users[0]));
 		this.walls.push(new rectangle(340,50, 10, 200,0, this.users[1]));
@@ -290,15 +324,20 @@ function lobby(name, maxplayers, id){
 		this.users[1].point = new rectangle(310, 50, 10, 60, 00 , null);
 		this.users[1].location = 50;
 		this.ball = new ball(new rectangle( this.width /2 + 50 - 10, this.height / 2 + 50 - 10, 20,20, 0, null));
-		this.ball.angle = Math.random() * 360;
+		this.ball.angle = Math.floor(Math.random() *  4) * 90 + 45;
+		this.updateInfo();
 	}	
 	this.resetGame = function resetGame(){
+		
 		if(this.users[0] != undefined && this.users[1] != undefined){
 			this.users[0].location = 50;
 			this.users[1].location = 50;
 		}
+		this.timer = 300;
+		this.gamestatus = "starting";
 		this.ball = new ball(new rectangle( this.width /2 + 50 - 10, this.height / 2 + 50 - 10, 20,20, 0, null));
-		this.ball.angle = Math.random() * 360;
+		this.ball.angle = Math.floor(Math.random() *  4) * 90 + 45;
+		this.updateInfo();
 	}
 	this.resetTimer = function resetTimer(){
 		this.timer = this.timerDefault;

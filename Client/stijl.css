@@ -1,40 +1,45 @@
-canvas{
-	border:1px solid #000000;
+#canvas{
+	margin:3px;
 }
-
 #header{
 	width:100%;
 	border: solid 1px black;
 	border-radius: 10px 10px 0px 0px;
 	background-color: gold;
 	height:20px;
-	
+	text-align:center;
 }
 
 #footer{
 	width:100%;
-	border: solid 1px black;
 	border-radius: 0px 0px 10px 10px;
 	background-color: gold;
 	height:20px;
 }
 
 #container{
+	color: white;
 	width:610px;
 	margin:auto;
-	
+	padding:0px;
+	border-right:2px solid #000000;
+	border-left:2px solid #000000;
+	border-radius: 10px;	
 }
+
 #menu{
-	width:200px;
+	position:relative;
+	border-radius: 10px;
+	width:196px;
 	float:right;
-	border:1px solid #000000;
-	height:300px;
+	border: solid 1px black;
+	height:298px;
+	margin:3px;
 }
 
 #chat {
 	width:100%;
 	height:150px;
-	border:1px solid #000000;
 }
 
 #chatHistory{
@@ -52,4 +57,14 @@ canvas{
 #message{
 	width:283px;	
 	
+}
+.bottom{ 
+	padding:7px;
+	position:absolute;
+	bottom:0;
+	left:0;
+}
+
+table {
+	width: 100%;
 }

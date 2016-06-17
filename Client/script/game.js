@@ -10,6 +10,8 @@ var background = new Image();
 splasscreen.src="img/Splasscreen.png";
 background.src = "img/background.png";
 
+var showSplasScreen = true;
+
 var status = "Startup";
 
 var lobby;
@@ -22,19 +24,22 @@ var playWidth;
 var playHeight;
 //splasscreen
 $("#canvas").ready(function(){
-	graphics.beginPath();	
-	graphics.drawImage(splasscreen,0,0,width ,height);
 	setTimeout(function(){
 		status  = "Browser";
-		graphics.beginPath();		
-		graphics.fillStyle = "#FFFFFF";
-		graphics.fillRect(0,0, width,height);
+		showSplasScreen = false;
 		socket.emit("serverListRefresh", []);
-	}, 2000); 
+	}, 4000); 
 });
 
 //draw game if lobby is set
 setInterval(function() {
+	if(showSplasScreen == true){
+		graphics.beginPath();
+		graphics.save()	
+		graphics.drawImage(splasscreen,0,0,width ,height);
+		graphics.restore();
+		return ;
+	}
 	if(status == "Browser"){
 		walls = undefined;
 		users = undefined;
@@ -82,6 +87,7 @@ socket.on("gameupdate", function (data) {
 });
 
 socket.on("lobbies", function (data) {
+	console.log("received browsers");
 	status = 'Browser';
 	lobbies = data;
 	$("#menu").html(createServerList(data));
@@ -109,20 +115,22 @@ socket.on("message", function(data){
 //////generating menus
 //creating lobby view
 function createLobbyView(lobby){
-	var lobbyView = "<Strong>Lobby</Strong><br><br><strong>Players:</strong><br>";
-	lobbyView+="-----------------------<br>"
+	var lobbyView = "<Strong>Lobby: " + lobby.name +"</Strong><br><br><strong>Players</strong><br>";
+	lobbyView+="<table>";
 	for(var i =0; i < lobby.users.length; i++){
-		lobbyView += lobby.users[i].name;
-		if(lobby.users[i].ready){
-			lobbyView +=  " <strong>ready</strong>" + "<br>";
+		var player = lobby.users[i];
+		lobbyView += "<tr><td>" + player.name + "</td>";
+		if(player.ready){
+			lobbyView +=  " <td>ready</td>";
 		}else{
-			lobbyView +=  " <strong>not ready</strong>" + "<br>";
+			lobbyView +=  " <td>not ready</td>";
 		}
+		lobbyView += "<td>" + player.points + "</td>";
 	}
-	lobbyView+="------------------------<br>"
-	lobbyView += "<input type='button' id='ready' value='ready'>";
+	lobbyView+="</table>"
+	lobbyView += "<div class='bottom'><input type='button' id='ready' value='ready'>";
 	lobbyView += "<input type='button' id='unready' value='unready'><br>";
-	lobbyView += "<input type='button' id='leaveLobby' value='Leave'>";
+	lobbyView += "<input type='button' id='leaveLobby' value='Leave'></dir>";
 	return lobbyView;
 }
 
@@ -130,16 +138,18 @@ function createLobbyView(lobby){
 function createServerList(data){
 	var serverlist = "<Strong>ServerList</Strong>";
 	if(data.length >0){
-		serverlist += "<ul>";
+		serverlist += "<div style='margin:3px;height:240px;overflow:auto;'><table>";
 		for(var i =0; i < data.length;i++){
-			serverlist += "<li>" + data[i].name + "<input type='button' value='Join' id='server' class='"+ data[i].id + "'></li>";
+			serverlist += "<tr>"
+			serverlist += "<td>" + data[i].name + "</td><td>("+ data[i].users.length +"/"+data[i].maxplayers +")</td><td><input type='button' value='Join' id='server' class='"+ data[i].id + "'></td>";
+			serverlist += "<tr>"
 		}
-		serverlist += "</ul>";
+		serverlist += "</table></div>";
 	} else {
 		serverlist +="<br> no servers found"
 	}
-	serverlist += "<button id='create' type='button'>Create Lobby</button>";
-	serverlist += "<button id='refresh' type='button'>Refresh list</button>";
+	serverlist += "<div class='bottom'><button id='create' type='button'>Create Lobby</button>";
+	serverlist += "<button id='refresh' type='button'>Refresh list</button></div>";
 	return serverlist;
 }
 
