@@ -6,7 +6,9 @@ var graphics = canvas.getContext("2d");
 var width = $("#canvas").width();
 var height = $("#canvas").height();
 var splasscreen = new Image();
-splasscreen.src="img/Splasscreen.png"
+var background = new Image();
+splasscreen.src="img/Splasscreen.png";
+background.src = "img/background.png";
 
 var status = "Startup";
 
@@ -16,7 +18,8 @@ var lobbies;
 var walls;
 var users ;
 var ball ;
-
+var playWidth;
+var playHeight;
 //splasscreen
 $("#canvas").ready(function(){
 	graphics.beginPath();	
@@ -32,13 +35,21 @@ $("#canvas").ready(function(){
 
 //draw game if lobby is set
 setInterval(function() {
+	if(status == "Browser"){
+		walls = undefined;
+		users = undefined;
+		bull = undefined;
+	}
+	
+	graphics.beginPath();
+	graphics.save()	
+	graphics.drawImage(background,0,0,width ,height);
+	graphics.restore();
 	
 	if( walls === undefined || users === undefined || ball === undefined){
 		return;
 	}
-	
-	console.log("drawing");
-	console.log(walls.length);
+
 	for(var i =0; i < walls.length; i++){
 		graphics.save()
 		graphics.fillStyle = "red";
@@ -47,6 +58,18 @@ setInterval(function() {
 		graphics.fillRect(0,0  , walls[i].width, walls[i].height);
 		graphics.restore();
 	}	
+	for(var i = 0 ; i < users.length; i++){
+		graphics.save();
+		graphics.fillStyle = "blue";
+		graphics.translate(users[i].point.x, users[i].point.y + (((playHeight-users[i].point.height) / 100) * users[i].location));
+		graphics.rotate(users[i].point.rot * Math.PI/180);
+		graphics.fillRect(0,0, users[i].point.width,users[i].point.height);
+		graphics.restore();
+	}
+	graphics.save();
+	graphics.fillStyle = "orange";
+	graphics.fillRect(ball.rectangle.x, ball.rectangle.y, ball.rectangle.width, ball.rectangle.height);
+	graphics.restore();
 }, 1000/60);
 
 ////connection listeners
@@ -54,6 +77,8 @@ socket.on("gameupdate", function (data) {
 	users = data[0];
 	walls = data[1];
 	ball = data[2];
+	playWidth = data[3];
+	playHeight = data[4];
 });
 
 socket.on("lobbies", function (data) {
@@ -76,6 +101,7 @@ socket.on("joinLobby", function (data){
 });
 
 socket.on("message", function(data){
+	 $('#chatHistory').scrollTop($('#chatHistory')[0].scrollHeight);
 	console.log("received message: " + data);
 	$("#chatHistory").append(data);
 });
@@ -121,14 +147,13 @@ function createServerList(data){
 //create lobby button
 $("#container").on('click', '#create', function () {
 	var form = "Name: <input type='text' id='lobbyname' value='name'></input>";
-	form += "Max Players: <input type='number' id='maxplayers' value='2'></input>"
 	form += "<button id='createlobby' type='button'>Create Lobby</button>";
 	$("#menu").html(form);
 });
 
 //create lobby packet 
 $("#container").on('click', '#createlobby', function () {
-	var name  = [$("#lobbyname").val(), $("#maxplayers").val()];
+	var name  = [$("#lobbyname").val()];
 	socket.emit("createlobby", name);
 	$("#menu").html(createServerList(lobbies));
 });

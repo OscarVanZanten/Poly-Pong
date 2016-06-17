@@ -34,16 +34,15 @@ io.sockets.on("connection", function(socket) {
 			room.leaveSilent(user);
 			
 		}else{
-			room.sendMessageToAll("System:'"+ user.name+"' left");
 			room.leave(user)
-			
+			room.sendMessageToAll("System:'"+ user.name+"' left");
 		}
 	});
 	socket.on('serverListRefresh', function() {
 		io.sockets.connected[socket.id].emit('lobbies', lobbies);
 	});
 	socket.on("createlobby", function(data){
-		var l = new lobby(data[0], data[1],getNextID());
+		var l = new lobby(data[0], 2,getNextID());
 		var user = mainlobby.getUserForID(socket.id);
 		mainlobby.leaveSilent(user);
 		l.join(user);
@@ -98,7 +97,6 @@ setInterval(function() {
 	for(var i = 0; i < lobbies.length; i ++){
 		lobbies[i].update();
 	}
-	
 }, 1000/60);
 
 function user(name, id){
@@ -112,10 +110,13 @@ function user(name, id){
 	this.points = 0;
 	this.color = 0;
 	//physics
-	this.point = new point(0,0);
+	this.point = [];
 	this.location = 0;
 	this.angle = 0;
 	
+	this.getRect =  function getRect(){
+		return new rectangle(this.point.x, this.point.y + (200 - this.point.height)/100 * this.location, this.point.width, this.point.height, 0, null);
+	}
 	this.update = function update(){
 		if(this.keys[0] && this.location > 0) this.location--;
 		if(this.keys[1]&& this.location <100) this.location++;
@@ -127,10 +128,33 @@ function user(name, id){
 	}
 }
 
-function ball(point){
-	this.point = point;
-	this.speed = 0;
+function ball(rectangle){
+	this.rectangle = rectangle;
+	this.speed = 1;
 	this.angle = 0;
+
+	this.update  = function update(lobby){
+		for(var i = 0; i < lobby.walls.length; i++){
+			if(lobby.walls[i].collision(this.rectangle)){
+				this.angle += 90;
+				if(lobby.walls[i].user != null){
+					lobby.walls[i].user.points++;
+					lobby.resetGame();
+				}
+			}
+		}
+		for(var i = 0; i < lobby.users.length; i++){
+			if(lobby.users[i].getRect().collision(this.rectangle)){
+				this.angle += 90;
+				this.speed += 0.2
+			}
+		}
+		while(this.angle > 360){
+			this.angle -= 360;
+		}
+		this.rectangle.x += Math.cos(this.angle * (Math.PI/180)) * this.speed;
+		this.rectangle.y += Math.sin(this.angle * (Math.PI/180)) * this.speed;
+	}
 }
 
 function rectangle(x,y,width,height,rot, user){
@@ -140,6 +164,23 @@ function rectangle(x,y,width,height,rot, user){
 	this.height = height;
 	this.rot = rot;
 	this.user = user;
+	this.timer = 0;
+	this.time = 3;
+	this.collision = function collision(rectangle){
+		var found = false;
+		var points = [];
+		points.push(new point(rectangle.x, rectangle.y));
+		points.push(new point(rectangle.x, rectangle.y + rectangle.height));
+		points.push(new point(rectangle.x + rectangle.width, rectangle.y));
+		points.push(new point(rectangle.x + rectangle.width,rectangle.y + rectangle.height));
+		for(var i =0; i < points.length; i++){
+			if(this.x < points[i].x && (this.x + this.width) > points[i].x
+			&& this.y < points[i].y && (this.y+ this.height) > points[i].y){
+					found = true;
+				}
+		}
+		return found;
+	}
 }
 
 function point(x,y){
@@ -160,7 +201,10 @@ function lobby(name, maxplayers, id){
 	//entities
 	this.users = [];
 	this.walls = [];
-	this.ball = new ball(new point(0,0));
+	this.ball;
+	//playing field
+	this.width;
+	this.height;
 	
 	this.getUserForID = function getUserForID(id){
 		for(var i =0; i < this.users.length; i++){
@@ -177,8 +221,7 @@ function lobby(name, maxplayers, id){
 					return true;
 			}
 		}
-	}
-	
+	}	
 	this.join = function join(user){
 		this.users.push(user);
 		this.updateInfo();
@@ -207,6 +250,7 @@ function lobby(name, maxplayers, id){
 			if(this.timer == 0){
 				this.gamestatus = "playing";
 				this.sendMessageToAll("System: Game started");
+				this.timer = 0;
 			}
 		}
 		if(this.gamestatus == "starting" || this.gamestatus == "playing"){
@@ -215,8 +259,9 @@ function lobby(name, maxplayers, id){
 			}
 			this.sendGameUpdate();
 		}
-		
-		
+		if(this.gamestatus == "playing"){
+			this.ball.update(this);
+		}
 	}
 	this.updateInfo = function updateInfo(){
 		for(var i =0; i < this.users.length; i++){
@@ -234,21 +279,26 @@ function lobby(name, maxplayers, id){
 		return (this.gamestatus == "preparing" && this.users.length >= 2 && this.users.length <= this.maxplayers && everyoneReady);
 	}
 	this.setupGame = function setupGame(){
-		this.walls = [];
-		switch(this.users.length){
-			case 2:
-				this.walls.push(new rectangle(50,50, 200, 10,0, null));
-				this.walls.push(new rectangle(50,50, 200, 10,90, this.users[0]));
-				this.walls.push(new rectangle(250,50, 200, 10,90, null));
-				this.walls.push(new rectangle(50,250, 200, 10,0, this.users[1]));
-				break;
-			case 3:
-				break;
-			case 4:
-				break;
-			default:
-				break;
+		this.width = 300;
+		this.height = 200;
+		this.walls.push(new rectangle(50,40, 300, 10,0, null));
+		this.walls.push(new rectangle(50,50, 10, 200,0, this.users[0]));
+		this.walls.push(new rectangle(340,50, 10, 200,0, this.users[1]));
+		this.walls.push(new rectangle(50,250, 300, 10,0, null));
+		this.users[0].point = new rectangle(80, 50, 10, 60, 00 , null);
+		this.users[0].location = 50;
+		this.users[1].point = new rectangle(310, 50, 10, 60, 00 , null);
+		this.users[1].location = 50;
+		this.ball = new ball(new rectangle( this.width /2 + 50 - 10, this.height / 2 + 50 - 10, 20,20, 0, null));
+		this.ball.angle = Math.random() * 360;
+	}	
+	this.resetGame = function resetGame(){
+		if(this.users[0] != undefined && this.users[1] != undefined){
+			this.users[0].location = 50;
+			this.users[1].location = 50;
 		}
+		this.ball = new ball(new rectangle( this.width /2 + 50 - 10, this.height / 2 + 50 - 10, 20,20, 0, null));
+		this.ball.angle = Math.random() * 360;
 	}
 	this.resetTimer = function resetTimer(){
 		this.timer = this.timerDefault;
@@ -260,7 +310,7 @@ function lobby(name, maxplayers, id){
 	}
 	this.sendGameUpdate = function sendGameUpdate(){
 		for(var i =0; i < this.users.length; i++){
-			io.sockets.connected[this.users[i].id].emit("gameupdate", [this.users, this.walls, this.ball]);
+			io.sockets.connected[this.users[i].id].emit("gameupdate", [this.users, this.walls, this.ball, this.width, this.height]);
 		}
 	}
 }

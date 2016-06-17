@@ -9,23 +9,25 @@
 	</head>
 	
 	
-	<body>
+	<body background="img/wallpaper.png">
 		<div id="container">
+			<div id="header"></div>
 			<canvas  id="canvas" width="400" height="300">
 		
 			</canvas>
 			<div id="menu">
 			</div>
-		
-			<br>
+			
 			<div id="chat">
-				<textarea id="chatHistory"></textarea>
+				<textarea id="chatHistory" disabled></textarea>
 				<div id="messageBox">
 					Chat: <input type="text" id="message" placeholder="message">
 					<input type="button" id="sendMessage" value="Send"></input>
+				Name: <input type="text" id="name" value="Player"></input>
 				</div>
 			</div>
-			Name: <input type="text" id="name" value="Player"></input>
+			
+			<div id="footer"></div>
 		</div>
 		
 		
